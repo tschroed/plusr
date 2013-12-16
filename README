@@ -1,2 +1,5 @@
 Plusr is an App Engine project which will sync G+ photos with specific
 tags to Flickr.
+
+No attempt is made to reuse any existing Picasa or Flickr libraries as
+this is my project for properly learning Go.
