@@ -29,6 +29,17 @@ func guestbookKey(c appengine.Context) *datastore.Key {
 
 func root(w http.ResponseWriter, r *http.Request) {
     c := appengine.NewContext(r)
+    u := user.Current(c)
+    if u == nil {
+      url, err := user.LoginURL(c, r.URL.String())
+      if err != nil {
+          http.Error(w, err.Error(), http.StatusInternalServerError)
+          return
+      }
+      w.Header().Set("Location", url)
+      w.WriteHeader(http.StatusFound)
+      return
+    }
     // Ancestor queries, as shown here, are strongly consistent with the High
     // Replication Datastore. Queries that span entity groups are eventually
     // consistent. If we omitted the .Ancestor from this query there would be
@@ -68,13 +79,12 @@ const guestbookTemplateHTML = `
 
 func sign(w http.ResponseWriter, r *http.Request) {
     c := appengine.NewContext(r)
+    u := user.Current(c)
     g := Greeting{
         Content: r.FormValue("content"),
         Date:    time.Now(),
     }
-    if u := user.Current(c); u != nil {
-        g.Author = u.String()
-    }
+    g.Author = u.String()
     // We set the same parent key on every Greeting entity to ensure each Greeting
     // is in the same entity group. Queries across the single entity group
     // will be consistent. However, the write rate to a single entity group

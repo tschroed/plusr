@@ -1,4 +1,4 @@
-package plusr
+package picasa
 
 import (
 	"io/ioutil"
