@@ -1,4 +1,4 @@
-package picasa
+package plusr
 
 import (
 	"encoding/xml"
