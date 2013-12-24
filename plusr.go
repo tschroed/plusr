@@ -8,6 +8,9 @@ import (
 	"appengine"
 	"appengine/datastore"
 	"appengine/user"
+
+// TODO(tschroed): Look up how to import 3rd party modules to AppEngine
+//	"code.google.com/p/goauth2/oauth"
 )
 
 type Greeting struct {
