@@ -18,6 +18,7 @@ type Greeting struct {
 
 func init() {
     http.HandleFunc("/", root)
+    http.HandleFunc("/logout", logout)
     http.HandleFunc("/sign", sign)
 }
 
@@ -26,6 +27,25 @@ func guestbookKey(c appengine.Context) *datastore.Key {
     // The string "default_guestbook" here could be varied to have multiple guestbooks.
     return datastore.NewKey(c, "Guestbook", "default_guestbook", 0, nil)
 }
+
+func logout(w http.ResponseWriter, r *http.Request) {
+  var url string
+    c := appengine.NewContext(r)
+    u := user.Current(c)
+    if u != nil {
+      var err error
+      url, err = user.LogoutURL(c, r.URL.String())
+      if err != nil {
+          http.Error(w, err.Error(), http.StatusInternalServerError)
+          return
+      } 
+    } else {
+	url = "/"
+    }
+    w.Header().Set("Location", url)
+    w.WriteHeader(http.StatusFound)
+    return
+  }
 
 func root(w http.ResponseWriter, r *http.Request) {
     c := appengine.NewContext(r)
@@ -72,6 +92,9 @@ const guestbookTemplateHTML = `
     <form action="/sign" method="post">
       <div><textarea name="content" rows="3" cols="60"></textarea></div>
       <div><input type="submit" value="Sign Guestbook"></div>
+    </form>
+    <form action="/logout" method="post">
+      <div><input type="submit" value="Logout"></div>
     </form>
   </body>
 </html>
