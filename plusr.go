@@ -4,6 +4,7 @@ package plusr
 // - Make it so that client id and secret are looked up from storage
 // - Factor out oauth stuff to be less mainline-y
 // - Implement token caching
+// - Tests, sucker!
 
 import (
 	"errors"
