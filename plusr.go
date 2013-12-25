@@ -1,16 +1,32 @@
 package plusr
 
+// TODO(trevors):
+// - Make it so that client id and secret are looked up from storage
+// - Factor out oauth stuff to be less mainline-y
+// - Implement token caching
+
 import (
+	"errors"
 	"html/template"
 	"net/http"
 	"time"
 
 	"appengine"
 	"appengine/datastore"
+	"appengine/urlfetch"
 	"appengine/user"
 
-// TODO(tschroed): Look up how to import 3rd party modules to AppEngine
-//	"code.google.com/p/goauth2/oauth"
+	"code.google.com/p/goauth2/oauth"
+)
+
+var (
+	clientId     = ""
+	clientSecret = ""
+	redirectURL  = "http://lungworm.zweknu.org:8080/oauth2callback"
+	scope        = "https://picasaweb.google.com/data/"
+	requestURL   = "https://www.googleapis.com/oauth2/v1/userinfo"
+	authURL      = "https://accounts.google.com/o/oauth2/auth"
+	tokenURL     = "https://accounts.google.com/o/oauth2/token"
 )
 
 type Greeting struct {
@@ -19,8 +35,21 @@ type Greeting struct {
 	Date    time.Time
 }
 
+type UserConfig struct {
+	Context appengine.Context
+}
+
+func (uc UserConfig) Token() (*oauth.Token, error) {
+	return nil, errors.New("Not implemented")
+}
+
+func (uc UserConfig) PutToken(*oauth.Token) error {
+	return errors.New("Not implemented")
+}
+
 func init() {
 	http.HandleFunc("/", root)
+	http.HandleFunc("/oauth2callback", fetchToken)
 	http.HandleFunc("/logout", logout)
 	http.HandleFunc("/sign", sign)
 }
@@ -29,6 +58,44 @@ func init() {
 func guestbookKey(c appengine.Context) *datastore.Key {
 	// The string "default_guestbook" here could be varied to have multiple guestbooks.
 	return datastore.NewKey(c, "Guestbook", "default_guestbook", 0, nil)
+}
+
+func userKey(c appengine.Context) *datastore.Key {
+	return datastore.NewKey(c, "Plusr", user.Current(c).String(), 0, nil)
+}
+
+func fetchToken(w http.ResponseWriter, r *http.Request) {
+	code := r.FormValue("code")
+	err := r.FormValue("error")
+	c := appengine.NewContext(r)
+	uc := &UserConfig{Context: c}
+	config := &oauth.Config{
+		ClientId:     clientId,
+		ClientSecret: clientSecret,
+		RedirectURL:  redirectURL,
+		Scope:        scope,
+		AuthURL:      authURL,
+		TokenURL:     tokenURL,
+		TokenCache:   uc,
+	}
+	uc.Context.Infof("%s", config)
+	if err != "" {
+		http.Error(w, err, http.StatusInternalServerError)
+		return
+	} else if code == "" {
+		url := config.AuthCodeURL("")
+		c.Infof("url = %s", url)
+		w.Header().Set("Location", url)
+		w.WriteHeader(http.StatusFound)
+		return
+	} else {
+		transport := &oauth.Transport{
+			Config:    config,
+			Transport: &urlfetch.Transport{Context: c},
+		}
+		token, err := transport.Exchange(code)
+		c.Infof("token, err = %s, %s", token, err)
+	}
 }
 
 func logout(w http.ResponseWriter, r *http.Request) {
@@ -63,6 +130,15 @@ func root(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusFound)
 		return
 	}
+	uc := &UserConfig{Context: c}
+	_, err := uc.Token()
+	if err != nil {
+		c.Infof("Missing Picasa OAuth2 token: %s", err)
+		w.Header().Set("Location", "/oauth2callback")
+		w.WriteHeader(http.StatusFound)
+		return
+	}
+
 	// Ancestor queries, as shown here, are strongly consistent with the High
 	// Replication Datastore. Queries that span entity groups are eventually
 	// consistent. If we omitted the .Ancestor from this query there would be
