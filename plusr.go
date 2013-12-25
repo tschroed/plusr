@@ -20,7 +20,7 @@ type Greeting struct {
 
 func init() {
 	http.HandleFunc("/", root)
-	http.HandleFunc("/picasaauth", picasa.Authorize)
+	http.HandleFunc(picasa.AuthPath, picasa.Authorize)
 	http.HandleFunc("/logout", logout)
 	http.HandleFunc("/sign", sign)
 }
@@ -70,7 +70,7 @@ func root(w http.ResponseWriter, r *http.Request) {
 	}
         if picasa.IsAuthorized(c) == false {
                 c.Infof("Picasa is not authorized.")
-		w.Header().Set("Location", "/picasaauth")
+		w.Header().Set("Location", picasa.AuthPath)
 		w.WriteHeader(http.StatusFound)
                 return
         }

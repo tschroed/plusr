@@ -15,6 +15,11 @@ import (
 	"code.google.com/p/goauth2/oauth"
 )
 
+var (
+        AuthPath = "/picasaauth"
+        RedirectURL = "http://lungworm.zweknu.org:8080" + AuthPath
+)
+
 type oauth2ClientConfig struct {
 	clientId     string
 	clientSecret string
@@ -51,7 +56,7 @@ func newOauth2ClientConfig() *oauth2ClientConfig {
 	return &oauth2ClientConfig{
 		clientId:     "",
 		clientSecret: "",
-		redirectURL:  "http://lungworm.zweknu.org:8080/picasaauth",
+		redirectURL:  "",
 		scope:        "https://picasaweb.google.com/data/",
 		requestURL:   "https://www.googleapis.com/oauth2/v1/userinfo",
 		authURL:      "https://accounts.google.com/o/oauth2/auth",
@@ -68,7 +73,7 @@ func Authorize(w http.ResponseWriter, r *http.Request) {
 	config := &oauth.Config{
 		ClientId:     oa2c.clientId,
 		ClientSecret: oa2c.clientSecret,
-		RedirectURL:  oa2c.redirectURL,
+		RedirectURL:  RedirectURL,
 		Scope:        oa2c.scope,
 		AuthURL:      oa2c.authURL,
 		TokenURL:     oa2c.tokenURL,
