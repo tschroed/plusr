@@ -1,6 +1,6 @@
 package plusr
 
-// TODO(trevors):
+// TODO(tschroed):
 // - Make it so that client id and secret are looked up from storage
 // - Factor out oauth stuff to be less mainline-y
 // - Implement token caching
@@ -20,15 +20,32 @@ import (
 	"code.google.com/p/goauth2/oauth"
 )
 
-var (
-	clientId     = ""
-	clientSecret = ""
-	redirectURL  = "http://lungworm.zweknu.org:8080/oauth2callback"
-	scope        = "https://picasaweb.google.com/data/"
-	requestURL   = "https://www.googleapis.com/oauth2/v1/userinfo"
-	authURL      = "https://accounts.google.com/o/oauth2/auth"
-	tokenURL     = "https://accounts.google.com/o/oauth2/token"
-)
+type oauth2ClientConfig struct {
+	clientId     string
+	clientSecret string
+	redirectURL  string
+	scope        string
+	requestURL   string
+	authURL      string
+	tokenURL     string
+}
+
+// TODO(tschroed): Ideally what we'd do here is provide a handler
+// which would allow admin users to pass new id, secret, and
+// redirect URL and then save that value in data store.
+//
+// The rest of the time it would be looked up.
+func newOauth2ClientConfig() *oauth2ClientConfig {
+	return &oauth2ClientConfig{
+		clientId:     "",
+		clientSecret: "",
+		redirectURL:  "http://lungworm.zweknu.org:8080/oauth2callback",
+		scope:        "https://picasaweb.google.com/data/",
+		requestURL:   "https://www.googleapis.com/oauth2/v1/userinfo",
+		authURL:      "https://accounts.google.com/o/oauth2/auth",
+		tokenURL:     "https://accounts.google.com/o/oauth2/token",
+	}
+}
 
 type Greeting struct {
 	Author  string
@@ -70,13 +87,14 @@ func fetchToken(w http.ResponseWriter, r *http.Request) {
 	err := r.FormValue("error")
 	c := appengine.NewContext(r)
 	uc := &UserConfig{Context: c}
+	oa2c := newOauth2ClientConfig()
 	config := &oauth.Config{
-		ClientId:     clientId,
-		ClientSecret: clientSecret,
-		RedirectURL:  redirectURL,
-		Scope:        scope,
-		AuthURL:      authURL,
-		TokenURL:     tokenURL,
+		ClientId:     oa2c.clientId,
+		ClientSecret: oa2c.clientSecret,
+		RedirectURL:  oa2c.redirectURL,
+		Scope:        oa2c.scope,
+		AuthURL:      oa2c.authURL,
+		TokenURL:     oa2c.tokenURL,
 		TokenCache:   uc,
 	}
 	uc.Context.Infof("%s", config)
