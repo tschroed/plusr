@@ -9,7 +9,7 @@ import (
 	"appengine/datastore"
 	"appengine/user"
 
-        "picasa"
+	"picasa"
 )
 
 type Greeting struct {
@@ -34,7 +34,6 @@ func guestbookKey(c appengine.Context) *datastore.Key {
 func userKey(c appengine.Context) *datastore.Key {
 	return datastore.NewKey(c, "Plusr", user.Current(c).String(), 0, nil)
 }
-
 
 func logout(w http.ResponseWriter, r *http.Request) {
 	var url string
@@ -68,12 +67,12 @@ func root(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusFound)
 		return
 	}
-        if picasa.IsAuthorized(c) == false {
-                c.Infof("Picasa is not authorized.")
+	if picasa.IsAuthorized(c) == false {
+		c.Infof("Picasa is not authorized.")
 		w.Header().Set("Location", picasa.AuthPath)
 		w.WriteHeader(http.StatusFound)
-                return
-        }
+		return
+	}
 	// Ancestor queries, as shown here, are strongly consistent with the High
 	// Replication Datastore. Queries that span entity groups are eventually
 	// consistent. If we omitted the .Ancestor from this query there would be

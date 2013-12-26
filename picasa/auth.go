@@ -6,18 +6,22 @@ package picasa
 // - Tests, sucker!
 
 import (
-	"errors"
 	"net/http"
+	"time"
 
 	"appengine"
+	"appengine/datastore"
 	"appengine/urlfetch"
+	"appengine/user"
 
 	"code.google.com/p/goauth2/oauth"
 )
 
 var (
-        AuthPath = "/picasaauth"
-        RedirectURL = "http://lungworm.zweknu.org:8080" + AuthPath
+	AuthPath = "/picasaauth"
+	// TODO(tschroed): This should be dynamically calculated...
+	// maybe from the referrer?
+	RedirectURL = "http://lungworm.zweknu.org:8080" + AuthPath
 )
 
 type oauth2ClientConfig struct {
@@ -31,20 +35,61 @@ type oauth2ClientConfig struct {
 }
 
 type userConfig struct {
-	Context appengine.Context
+	context appengine.Context
+}
+
+type Token struct {
+	AccessToken  string
+	RefreshToken string
+	Expiry       time.Time
+}
+
+func (uc userConfig) rootUserKey() *datastore.Key {
+	return datastore.NewKey(uc.context, "string",
+		user.Current(uc.context).String(), 0,
+		nil)
 }
 
 func (uc userConfig) Token() (*oauth.Token, error) {
-	return nil, errors.New("Not implemented")
+	k := datastore.NewKey(uc.context, "Token",
+		"PicasaToken", 0,
+		uc.rootUserKey())
+	t := &Token{}
+	if err := datastore.Get(uc.context, k, t); err != nil {
+		uc.context.Errorf("Token() Error: %s", err)
+		return nil, err
+	}
+	return &oauth.Token{
+		AccessToken:  t.AccessToken,
+		RefreshToken: t.RefreshToken,
+		Expiry:       t.Expiry,
+	}, nil
 }
 
-func (uc userConfig) PutToken(*oauth.Token) error {
-	return errors.New("Not implemented")
+func (uc userConfig) PutToken(t *oauth.Token) error {
+	k := datastore.NewKey(uc.context, "Token",
+		"PicasaToken", 0,
+		uc.rootUserKey())
+	t0 := &Token{
+		AccessToken:  t.AccessToken,
+		RefreshToken: t.RefreshToken,
+		Expiry:       t.Expiry,
+	}
+	_, err := datastore.Put(uc.context, k, t0)
+	if err != nil {
+		uc.context.Errorf("PutToken() Error: %s", err)
+	}
+	return err
 }
 
-
+// TODO(tschroed): Really need to check expiry as well.
 func IsAuthorized(c appengine.Context) bool {
-        return false
+	uc := &userConfig{context: c}
+	_, err := uc.Token()
+	if err == nil {
+		return true
+	}
+	return false
 }
 
 // TODO(tschroed): Ideally what we'd do here is provide a handler
@@ -68,7 +113,7 @@ func Authorize(w http.ResponseWriter, r *http.Request) {
 	code := r.FormValue("code")
 	err := r.FormValue("error")
 	c := appengine.NewContext(r)
-	uc := &userConfig{Context: c}
+	uc := &userConfig{context: c}
 	oa2c := newOauth2ClientConfig()
 	config := &oauth.Config{
 		ClientId:     oa2c.clientId,
@@ -79,13 +124,11 @@ func Authorize(w http.ResponseWriter, r *http.Request) {
 		TokenURL:     oa2c.tokenURL,
 		TokenCache:   uc,
 	}
-	uc.Context.Infof("%s", config)
 	if err != "" {
 		http.Error(w, err, http.StatusInternalServerError)
 		return
 	} else if code == "" {
 		url := config.AuthCodeURL("")
-		c.Infof("url = %s", url)
 		w.Header().Set("Location", url)
 		w.WriteHeader(http.StatusFound)
 		return
@@ -95,6 +138,8 @@ func Authorize(w http.ResponseWriter, r *http.Request) {
 			Transport: &urlfetch.Transport{Context: c},
 		}
 		token, err := transport.Exchange(code)
-		c.Infof("token, err = %s, %s", token, err)
+		if err != nil {
+			c.Errorf("Couldn't exchange code: %s", err)
+		}
 	}
 }
