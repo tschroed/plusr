@@ -2,7 +2,6 @@ package picasa
 
 // TODO(tschroed):
 // - Make it so that client id and secret are looked up from storage
-// - Test token renewal
 // - Tests, sucker!
 
 import (
@@ -21,7 +20,7 @@ var (
 	AuthPath = "/picasaauth"
 	// TODO(tschroed): This should be dynamically calculated...
 	// maybe from the referrer?
-	RedirectURL = "http://lungworm.zweknu.org:8080" + AuthPath
+	RedirectURL = "http://localhost:8080" + AuthPath
 )
 
 type userConfig struct {
@@ -79,8 +78,8 @@ func (uc userConfig) PutToken(t *oauth.Token) error {
 // The rest of the time it would be looked up.
 func (uc *userConfig) newOauth2ClientConfig() *oauth.Config {
 	return &oauth.Config{
-		ClientId:     "",
-		ClientSecret: "",
+		ClientId:     "864886111002-b0v7qc8f9lenaqo9bs7u3n7mkejvoc55.apps.googleusercontent.com",
+		ClientSecret: "BV9-WnnEoByAFuTsGD2xN8PT",
 		RedirectURL:  RedirectURL,
 		Scope:        "https://picasaweb.google.com/data/",
 		AuthURL:      "https://accounts.google.com/o/oauth2/auth",
@@ -90,7 +89,7 @@ func (uc *userConfig) newOauth2ClientConfig() *oauth.Config {
 	}
 }
 
-// TODO(tschroed): Really need to check expiry as well.
+// Note that this may force token renewal if expired.
 func IsAuthorized(c appengine.Context) bool {
 	uc := &userConfig{context: c}
 	token, err := uc.Token()
@@ -112,7 +111,7 @@ func IsAuthorized(c appengine.Context) bool {
 	return true
 }
 
-func Authorize(w http.ResponseWriter, r *http.Request) {
+func AuthorizeHandler(w http.ResponseWriter, r *http.Request) {
 	code := r.FormValue("code")
 	err := r.FormValue("error")
 	c := appengine.NewContext(r)

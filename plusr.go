@@ -20,8 +20,9 @@ type Greeting struct {
 
 func init() {
 	http.HandleFunc("/", root)
-	http.HandleFunc(picasa.AuthPath, picasa.Authorize)
+	http.HandleFunc(picasa.AuthPath, picasa.AuthorizeHandler)
 	http.HandleFunc("/logout", logout)
+	http.HandleFunc("/readfeed", picasa.PhotoFeedHandler)
 	http.HandleFunc("/sign", sign)
 }
 

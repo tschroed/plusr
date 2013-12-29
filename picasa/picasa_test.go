@@ -12,7 +12,7 @@ func TestParseFeed(t *testing.T) {
 	if err != nil {
 		log.Fatalf("Failed to read %s: %s", xml_fname, err)
 	}
-	feed := ParseFeed(text)
+	feed := parseFeed(text)
 	if len(feed.Photos) != 2 {
 		t.Errorf("Feed had > 2 items: %d", len(feed.Photos))
 	}
