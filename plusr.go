@@ -57,7 +57,7 @@ func root(w http.ResponseWriter, r *http.Request) {
 	c := appengine.NewContext(r)
 	if u := user.Current(c); u == nil {
 		url, err := user.LoginURL(c, r.URL.String())
-                if err != nil {
+		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}

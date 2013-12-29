@@ -66,9 +66,9 @@ func (uc userConfig) PutToken(t *oauth.Token) error {
 	}
 	if _, err := datastore.Put(uc.context, k, t0); err != nil {
 		uc.context.Errorf("PutToken() Error: %s", err)
-                return err
+		return err
 	}
-        return nil
+	return nil
 }
 
 // TODO(tschroed): Ideally what we'd do here is provide a handler
@@ -116,21 +116,21 @@ func AuthorizeHandler(w http.ResponseWriter, r *http.Request) {
 	c := appengine.NewContext(r)
 	uc := &userConfig{context: c}
 	config := uc.newOauth2ClientConfig()
-        switch {
-        case err != "":
+	switch {
+	case err != "":
 		http.Error(w, err, http.StatusInternalServerError)
 		return
-        case code == "":
+	case code == "":
 		url := config.AuthCodeURL("")
 		w.Header().Set("Location", url)
 		w.WriteHeader(http.StatusFound)
 		return
-        }
-        transport := &oauth.Transport{
-                Config:    config,
-                Transport: &urlfetch.Transport{Context: c},
-        }
-        if _, err := transport.Exchange(code); err != nil {
-                c.Errorf("Couldn't exchange code: %s", err)
+	}
+	transport := &oauth.Transport{
+		Config:    config,
+		Transport: &urlfetch.Transport{Context: c},
+	}
+	if _, err := transport.Exchange(code); err != nil {
+		c.Errorf("Couldn't exchange code: %s", err)
 	}
 }

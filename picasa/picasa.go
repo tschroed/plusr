@@ -19,7 +19,8 @@ const (
 )
 
 type Content struct {
-	Src string `xml:"src,attr"`
+	Src  string `xml:"src,attr"`
+	Type string `xml:"type,attr"`
 }
 
 type Photo struct {
@@ -88,6 +89,7 @@ func PhotoFeedHandler(w http.ResponseWriter, r *http.Request) {
 		uc.context.Errorf("findPhotos(): %s", err)
 		return
 	}
+	uc.context.Infof("These are the photos:")
 	for _, p := range photos {
 		uc.context.Infof("Photo: %s (%s)", p.Title, p.Contents.Src)
 	}

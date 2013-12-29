@@ -20,7 +20,9 @@ func TestParseFeed(t *testing.T) {
 		Title: "IMG_20131210_125726.jpg",
 		Id:    "5955929363163475490",
 		Contents: Content{
-			Src: "https://lh4.googleusercontent.com/-JPlXi5pFopE/Uqe2My6tbiI/AAAAAAAAHbI/urCIvjBmLv0/IMG_20131210_125726.jpg"},
+			Src:  "https://lh4.googleusercontent.com/-JPlXi5pFopE/Uqe2My6tbiI/AAAAAAAAHbI/urCIvjBmLv0/IMG_20131210_125726.jpg",
+			Type: "image/jpeg",
+		},
 		Version: "8561",
 		Album:   "12/10/13",
 	}
@@ -29,7 +31,9 @@ func TestParseFeed(t *testing.T) {
 		Id:    "5955929366130897234",
 		Album: "12/10/13",
 		Contents: Content{
-			Src: "https://lh3.googleusercontent.com/-YR8R3keyKJM/Uqe2M9-MsVI/AAAAAAAAHbE/00IfRoh6Eso/IMG_20131210_120040.jpg"},
+			Src:  "https://lh3.googleusercontent.com/-YR8R3keyKJM/Uqe2M9-MsVI/AAAAAAAAHbE/00IfRoh6Eso/IMG_20131210_120040.jpg",
+			Type: "image/jpeg",
+		},
 		Version: "8560",
 	}
 	if p0 != feed.Photos[0] {
