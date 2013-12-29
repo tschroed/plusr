@@ -64,11 +64,11 @@ func (uc userConfig) PutToken(t *oauth.Token) error {
 		RefreshToken: t.RefreshToken,
 		Expiry:       t.Expiry,
 	}
-	_, err := datastore.Put(uc.context, k, t0)
-	if err != nil {
+	if _, err := datastore.Put(uc.context, k, t0); err != nil {
 		uc.context.Errorf("PutToken() Error: %s", err)
+                return err
 	}
-	return err
+        return nil
 }
 
 // TODO(tschroed): Ideally what we'd do here is provide a handler
@@ -102,8 +102,7 @@ func IsAuthorized(c appengine.Context) bool {
 			Token:     token,
 			Transport: &urlfetch.Transport{Context: c},
 		}
-		err = transport.Refresh()
-		if err != nil {
+		if err = transport.Refresh(); err != nil {
 			c.Errorf("Error refreshing: %s", err)
 			return false
 		}
@@ -117,22 +116,21 @@ func AuthorizeHandler(w http.ResponseWriter, r *http.Request) {
 	c := appengine.NewContext(r)
 	uc := &userConfig{context: c}
 	config := uc.newOauth2ClientConfig()
-	if err != "" {
+        switch {
+        case err != "":
 		http.Error(w, err, http.StatusInternalServerError)
 		return
-	} else if code == "" {
+        case code == "":
 		url := config.AuthCodeURL("")
 		w.Header().Set("Location", url)
 		w.WriteHeader(http.StatusFound)
 		return
-	} else {
-		transport := &oauth.Transport{
-			Config:    config,
-			Transport: &urlfetch.Transport{Context: c},
-		}
-		_, err := transport.Exchange(code)
-		if err != nil {
-			c.Errorf("Couldn't exchange code: %s", err)
-		}
+        }
+        transport := &oauth.Transport{
+                Config:    config,
+                Transport: &urlfetch.Transport{Context: c},
+        }
+        if _, err := transport.Exchange(code); err != nil {
+                c.Errorf("Couldn't exchange code: %s", err)
 	}
 }

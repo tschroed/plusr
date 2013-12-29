@@ -39,11 +39,9 @@ func userKey(c appengine.Context) *datastore.Key {
 func logout(w http.ResponseWriter, r *http.Request) {
 	var url string
 	c := appengine.NewContext(r)
-	u := user.Current(c)
-	if u != nil {
+	if u := user.Current(c); u != nil {
 		var err error
-		url, err = user.LogoutURL(c, r.URL.String())
-		if err != nil {
+		if url, err = user.LogoutURL(c, r.URL.String()); err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
@@ -57,10 +55,9 @@ func logout(w http.ResponseWriter, r *http.Request) {
 
 func root(w http.ResponseWriter, r *http.Request) {
 	c := appengine.NewContext(r)
-	u := user.Current(c)
-	if u == nil {
+	if u := user.Current(c); u == nil {
 		url, err := user.LoginURL(c, r.URL.String())
-		if err != nil {
+                if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
