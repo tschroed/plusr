@@ -2,7 +2,7 @@ package picasa
 
 // TODO(tschroed):
 // - Make it so that client id and secret are looked up from storage
-// - Implement token caching
+// - Test token renewal
 // - Tests, sucker!
 
 import (
@@ -23,16 +23,6 @@ var (
 	// maybe from the referrer?
 	RedirectURL = "http://lungworm.zweknu.org:8080" + AuthPath
 )
-
-type oauth2ClientConfig struct {
-	clientId     string
-	clientSecret string
-	redirectURL  string
-	scope        string
-	requestURL   string
-	authURL      string
-	tokenURL     string
-}
 
 type userConfig struct {
 	context appengine.Context
@@ -82,31 +72,44 @@ func (uc userConfig) PutToken(t *oauth.Token) error {
 	return err
 }
 
-// TODO(tschroed): Really need to check expiry as well.
-func IsAuthorized(c appengine.Context) bool {
-	uc := &userConfig{context: c}
-	_, err := uc.Token()
-	if err == nil {
-		return true
-	}
-	return false
-}
-
 // TODO(tschroed): Ideally what we'd do here is provide a handler
 // which would allow admin users to pass new id, secret, and
 // redirect URL and then save that value in data store.
 //
 // The rest of the time it would be looked up.
-func newOauth2ClientConfig() *oauth2ClientConfig {
-	return &oauth2ClientConfig{
-		clientId:     "",
-		clientSecret: "",
-		redirectURL:  "",
-		scope:        "https://picasaweb.google.com/data/",
-		requestURL:   "https://www.googleapis.com/oauth2/v1/userinfo",
-		authURL:      "https://accounts.google.com/o/oauth2/auth",
-		tokenURL:     "https://accounts.google.com/o/oauth2/token",
+func (uc *userConfig) newOauth2ClientConfig() *oauth.Config {
+	return &oauth.Config{
+		ClientId:     "",
+		ClientSecret: "",
+		RedirectURL:  RedirectURL,
+		Scope:        "https://picasaweb.google.com/data/",
+		AuthURL:      "https://accounts.google.com/o/oauth2/auth",
+		TokenURL:     "https://accounts.google.com/o/oauth2/token",
+		AccessType:   "offline",
+		TokenCache:   uc,
 	}
+}
+
+// TODO(tschroed): Really need to check expiry as well.
+func IsAuthorized(c appengine.Context) bool {
+	uc := &userConfig{context: c}
+	token, err := uc.Token()
+	if err != nil {
+		return false
+	}
+	if token.Expired() {
+		transport := &oauth.Transport{
+			Config:    uc.newOauth2ClientConfig(),
+			Token:     token,
+			Transport: &urlfetch.Transport{Context: c},
+		}
+		err = transport.Refresh()
+		if err != nil {
+			c.Errorf("Error refreshing: %s", err)
+			return false
+		}
+	}
+	return true
 }
 
 func Authorize(w http.ResponseWriter, r *http.Request) {
@@ -114,16 +117,7 @@ func Authorize(w http.ResponseWriter, r *http.Request) {
 	err := r.FormValue("error")
 	c := appengine.NewContext(r)
 	uc := &userConfig{context: c}
-	oa2c := newOauth2ClientConfig()
-	config := &oauth.Config{
-		ClientId:     oa2c.clientId,
-		ClientSecret: oa2c.clientSecret,
-		RedirectURL:  RedirectURL,
-		Scope:        oa2c.scope,
-		AuthURL:      oa2c.authURL,
-		TokenURL:     oa2c.tokenURL,
-		TokenCache:   uc,
-	}
+	config := uc.newOauth2ClientConfig()
 	if err != "" {
 		http.Error(w, err, http.StatusInternalServerError)
 		return
@@ -137,7 +131,7 @@ func Authorize(w http.ResponseWriter, r *http.Request) {
 			Config:    config,
 			Transport: &urlfetch.Transport{Context: c},
 		}
-		token, err := transport.Exchange(code)
+		_, err := transport.Exchange(code)
 		if err != nil {
 			c.Errorf("Couldn't exchange code: %s", err)
 		}
