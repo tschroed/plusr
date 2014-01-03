@@ -25,6 +25,7 @@ var (
 
 type userConfig struct {
 	context appengine.Context
+        rootUser string
 }
 
 type Token struct {
@@ -34,9 +35,7 @@ type Token struct {
 }
 
 func (uc userConfig) rootUserKey() *datastore.Key {
-	return datastore.NewKey(uc.context, "string",
-		user.Current(uc.context).String(), 0,
-		nil)
+	return datastore.NewKey(uc.context, "string", uc.rootUser, 0, nil)
 }
 
 func (uc userConfig) Token() (*oauth.Token, error) {
@@ -90,11 +89,11 @@ func (uc *userConfig) newOauth2ClientConfig() *oauth.Config {
 }
 
 // Note that this may force token renewal if expired.
-func IsAuthorized(c appengine.Context) bool {
-	uc := &userConfig{context: c}
+func MaybeGetAuth(c appengine.Context, u string) interface{} {
+        uc := &userConfig{context: c, rootUser: u}
 	token, err := uc.Token()
 	if err != nil {
-		return false
+		return nil
 	}
 	if token.Expired() {
 		transport := &oauth.Transport{
@@ -104,17 +103,18 @@ func IsAuthorized(c appengine.Context) bool {
 		}
 		if err = transport.Refresh(); err != nil {
 			c.Errorf("Error refreshing: %s", err)
-			return false
+			return nil
 		}
 	}
-	return true
+	return uc
 }
 
+// Must execute in the context of a live user request.
 func AuthorizeHandler(w http.ResponseWriter, r *http.Request) {
 	code := r.FormValue("code")
 	err := r.FormValue("error")
 	c := appengine.NewContext(r)
-	uc := &userConfig{context: c}
+        uc := &userConfig{context: c, rootUser: user.Current(c).String()}
 	config := uc.newOauth2ClientConfig()
 	switch {
 	case err != "":

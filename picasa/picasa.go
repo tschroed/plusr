@@ -6,8 +6,9 @@ import (
 	"io/ioutil"
 	"net/http"
 
-	"appengine"
+        "appengine"
 	"appengine/urlfetch"
+	"appengine/user"
 
 	"code.google.com/p/goauth2/oauth"
 )
@@ -78,7 +79,8 @@ func findPhotos(token *oauth.Token, client *http.Client) ([]Photo, error) {
 }
 
 func PhotoFeedHandler(w http.ResponseWriter, r *http.Request) {
-	uc := userConfig{context: appengine.NewContext(r)}
+        c := appengine.NewContext(r)
+        uc := userConfig{context: c, rootUser: user.Current(c).String()}
 	token, err := uc.Token()
 	if err != nil {
 		uc.context.Errorf("Token(): %s", err)

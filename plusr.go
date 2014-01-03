@@ -55,7 +55,8 @@ func logout(w http.ResponseWriter, r *http.Request) {
 
 func root(w http.ResponseWriter, r *http.Request) {
 	c := appengine.NewContext(r)
-	if u := user.Current(c); u == nil {
+        u := user.Current(c)
+	if u == nil {
 		url, err := user.LoginURL(c, r.URL.String())
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -65,7 +66,7 @@ func root(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusFound)
 		return
 	}
-	if picasa.IsAuthorized(c) == false {
+	if picasa.MaybeGetAuth(c, u.String()) == nil {
 		c.Infof("Picasa is not authorized.")
 		w.Header().Set("Location", picasa.AuthPath)
 		w.WriteHeader(http.StatusFound)
