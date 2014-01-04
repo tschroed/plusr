@@ -3,12 +3,9 @@ package picasa
 import (
 	"encoding/xml"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"net/http"
-
-        "appengine"
-	"appengine/urlfetch"
-	"appengine/user"
 
 	"code.google.com/p/goauth2/oauth"
 )
@@ -25,11 +22,22 @@ type Content struct {
 }
 
 type Photo struct {
-	Contents Content `xml:"content"`
-	Id       string  `xml:"id"`
-	Version  string  `xml:"version"`
-	Title    string  `xml:"title"`
-	Album    string  `xml:"albumtitle"`
+	Contents   Content `xml:"content"`
+	Id         string  `xml:"id"`
+	Version    string  `xml:"version"`
+	Title      string  `xml:"title"`
+	Album      string  `xml:"albumtitle"`
+	GlobalUid  string
+	httpClient *http.Client
+	token      *oauth.Token
+}
+
+func (p *Photo) Body() io.Reader {
+	resp, err := get(p.Contents.Src, p.token, p.httpClient)
+	if err != nil {
+		return nil
+	}
+	return resp.Body
 }
 
 type PhotoFeed struct {
@@ -40,6 +48,10 @@ type PhotoFeed struct {
 func parseFeed(text []byte) PhotoFeed {
 	feed := PhotoFeed{}
 	xml.Unmarshal([]byte(text), &feed)
+	for i, _ := range feed.Photos {
+		p := &feed.Photos[i]
+		p.GlobalUid = fmt.Sprintf("picasa:%s", p.Id)
+	}
 	return feed
 }
 
@@ -51,9 +63,9 @@ func gdataHeader() (string, string) {
 	return "Gdata-version", GDATA_VERSION
 }
 
-func getGdataFeed(token *oauth.Token, client *http.Client) ([]byte, error) {
+func get(path string, token *oauth.Token, client *http.Client) (*http.Response, error) {
 	var k, v string
-	req, err := http.NewRequest("GET", GDATA_FEED, nil)
+	req, err := http.NewRequest("GET", path, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -61,10 +73,15 @@ func getGdataFeed(token *oauth.Token, client *http.Client) ([]byte, error) {
 	req.Header.Add(k, v)
 	k, v = authHeader(token)
 	req.Header.Add(k, v)
-	resp, err := client.Do(req)
+	return client.Do(req)
+}
+
+func getGdataFeed(token *oauth.Token, client *http.Client) ([]byte, error) {
+	resp, err := get(GDATA_FEED, token, client)
 	if err != nil {
 		return nil, err
 	}
+	defer resp.Body.Close()
 	body, err := ioutil.ReadAll(resp.Body)
 	return body, err
 }
@@ -75,24 +92,9 @@ func findPhotos(token *oauth.Token, client *http.Client) ([]Photo, error) {
 		return nil, err
 	}
 	feed := parseFeed(text)
+	for _, p := range feed.Photos {
+		p.httpClient = client
+		p.token = token
+	}
 	return feed.Photos, nil
-}
-
-func PhotoFeedHandler(w http.ResponseWriter, r *http.Request) {
-        c := appengine.NewContext(r)
-        uc := userConfig{context: c, rootUser: user.Current(c).String()}
-	token, err := uc.Token()
-	if err != nil {
-		uc.context.Errorf("Token(): %s", err)
-		return
-	}
-	photos, err := findPhotos(token, urlfetch.Client(uc.context))
-	if err != nil {
-		uc.context.Errorf("findPhotos(): %s", err)
-		return
-	}
-	uc.context.Infof("These are the photos:")
-	for _, p := range photos {
-		uc.context.Infof("Photo: %s (%s)", p.Title, p.Contents.Src)
-	}
 }

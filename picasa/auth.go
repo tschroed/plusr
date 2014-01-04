@@ -24,8 +24,8 @@ var (
 )
 
 type userConfig struct {
-	context appengine.Context
-        rootUser string
+	context  appengine.Context
+	rootUser string
 }
 
 type Token struct {
@@ -89,8 +89,8 @@ func (uc *userConfig) newOauth2ClientConfig() *oauth.Config {
 }
 
 // Note that this may force token renewal if expired.
-func MaybeGetAuth(c appengine.Context, u string) interface{} {
-        uc := &userConfig{context: c, rootUser: u}
+func MaybeGetAuth(c appengine.Context, u string) *userConfig {
+	uc := &userConfig{context: c, rootUser: u}
 	token, err := uc.Token()
 	if err != nil {
 		return nil
@@ -114,7 +114,7 @@ func AuthorizeHandler(w http.ResponseWriter, r *http.Request) {
 	code := r.FormValue("code")
 	err := r.FormValue("error")
 	c := appengine.NewContext(r)
-        uc := &userConfig{context: c, rootUser: user.Current(c).String()}
+	uc := &userConfig{context: c, rootUser: user.Current(c).String()}
 	config := uc.newOauth2ClientConfig()
 	switch {
 	case err != "":

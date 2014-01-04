@@ -22,7 +22,7 @@ func init() {
 	http.HandleFunc("/", root)
 	http.HandleFunc(picasa.AuthPath, picasa.AuthorizeHandler)
 	http.HandleFunc("/logout", logout)
-	http.HandleFunc("/readfeed", picasa.PhotoFeedHandler)
+	http.HandleFunc("/readfeed", photoFeedHandler)
 	http.HandleFunc("/sign", sign)
 }
 
@@ -48,28 +48,47 @@ func logout(w http.ResponseWriter, r *http.Request) {
 	} else {
 		url = "/"
 	}
-	w.Header().Set("Location", url)
-	w.WriteHeader(http.StatusFound)
+	http.Redirect(w, r, url, http.StatusFound)
 	return
+}
+
+func photoFeedHandler(w http.ResponseWriter, r *http.Request) {
+	c := appengine.NewContext(r)
+	auth := picasa.MaybeGetAuth(c, user.Current(c).String())
+	if auth == nil {
+		c.Errorf("Unable to get authentication blob.")
+		return
+	}
+	photos := make(chan *picasa.Photo)
+	done := make(chan bool)
+	source := picasa.NewPhotoSource(auth, photos, done)
+	go source.Start()
+	for {
+		select {
+		case p := <-photos:
+			c.Infof("Photo: %s (%s)", p.Title, p.Contents.Src)
+		case <-done:
+			c.Infof("Those are all the photos.")
+			return
+		}
+	}
 }
 
 func root(w http.ResponseWriter, r *http.Request) {
 	c := appengine.NewContext(r)
-        u := user.Current(c)
+	u := user.Current(c)
 	if u == nil {
 		url, err := user.LoginURL(c, r.URL.String())
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
-		w.Header().Set("Location", url)
-		w.WriteHeader(http.StatusFound)
+		http.Redirect(w, r, url, http.StatusFound)
 		return
 	}
 	if picasa.MaybeGetAuth(c, u.String()) == nil {
 		c.Infof("Picasa is not authorized.")
-		w.Header().Set("Location", picasa.AuthPath)
-		w.WriteHeader(http.StatusFound)
+		http.Redirect(w, r, picasa.AuthPath, http.StatusFound)
 		return
 	}
 	// Ancestor queries, as shown here, are strongly consistent with the High
