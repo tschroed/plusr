@@ -32,7 +32,10 @@ func (uc *userConfig) Post(url string, bodyType string, body io.Reader) (resp *h
 func UploadGarbage(w http.ResponseWriter, r *http.Request) {
 	c := appengine.NewContext(r)
 	uc := userConfig{context: c, rootUser: user.Current(c).String()}
-	fc := flickgo.New("--API KEY--", "--SECRET--", &uc)
+        uc.oauthConsumer().Debug(true)
+	fc := flickgo.New(APIKey, APISecret, &uc)
+        username, _, err := fc.TestLogin()
+        c.Infof("username, err: %v, %v", username, err)
 	buf := bytes.NewBufferString("This is a bunch of crap.\r\n")
 	tick, err := fc.Upload("Garbage", buf.Bytes(), nil)
 	uc.context.Infof("tick, err: %v, %v", tick, err)

@@ -20,6 +20,9 @@ var (
 		AccessTokenUrl:    "http://www.flickr.com/services/oauth/access_token",
 	}
 	RedirectURL = "http://localhost:8080" + AuthPath
+	// Get the key and secret at http://www.flickr.com/services/apps/by/me
+        APIKey = ""
+        APISecret = ""
 )
 
 type keyValue struct {
@@ -76,6 +79,12 @@ func (uc *userConfig) accessToken() (*oauth.AccessToken, error) {
 	return atoken.toAccessToken(), nil
 }
 
+func (uc *userConfig) Printf(format string, a ...interface{}) (n int, err error) {
+        uc.context.Infof(format, a...)
+        return 0, nil
+}
+
+
 func MaybeGetAuth(c appengine.Context, u string) *userConfig {
 	uc := &userConfig{context: c, rootUser: u}
 	tok, _ := uc.accessToken()
@@ -87,10 +96,10 @@ func MaybeGetAuth(c appengine.Context, u string) *userConfig {
 }
 
 func (uc *userConfig) oauthConsumer() *oauth.Consumer {
-	// Get the key and secret at http://www.flickr.com/services/apps/by/me
-	consumer := oauth.NewConsumer("--API KEY--",
-		"--SECRET--", FlickrProvider)
+	consumer := oauth.NewConsumer(APIKey, APISecret, FlickrProvider)
 	consumer.HttpClient = urlfetch.Client(uc.context)
+        consumer.Logger = uc
+        consumer.Debug(true)
 	return consumer
 }
 
