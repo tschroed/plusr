@@ -23,6 +23,7 @@ func init() {
 	http.HandleFunc("/", root)
 	http.HandleFunc(picasa.AuthPath, picasa.AuthorizeHandler)
 	http.HandleFunc(flickr.AuthPath, flickr.AuthorizeHandler)
+	http.HandleFunc("/garbage", flickr.UploadGarbage)
 	http.HandleFunc("/logout", logout)
 	http.HandleFunc("/readfeed", photoFeedHandler)
 	http.HandleFunc("/sign", sign)

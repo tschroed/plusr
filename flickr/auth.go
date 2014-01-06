@@ -58,26 +58,40 @@ func (a *AccessToken) toAccessToken() *oauth.AccessToken {
 }
 
 type userConfig struct {
-	context     appengine.Context
-	rootUser    string
-	accessToken *oauth.AccessToken
+	context  appengine.Context
+	rootUser string
 }
 
-func (uc userConfig) rootUserKey() *datastore.Key {
+func (uc *userConfig) rootUserKey() *datastore.Key {
 	return datastore.NewKey(uc.context, "string", uc.rootUser, 0, nil)
 }
 
-func MaybeGetAuth(c appengine.Context, u string) *userConfig {
-	uc := &userConfig{context: c, rootUser: u}
+func (uc *userConfig) accessToken() (*oauth.AccessToken, error) {
 	atoken := &AccessToken{}
 	akey := datastore.NewKey(uc.context, "AccessToken",
 		"FlickrAccessToken", 0, uc.rootUserKey())
 	if err := datastore.Get(uc.context, akey, atoken); err != nil {
+		return nil, err
+	}
+	return atoken.toAccessToken(), nil
+}
+
+func MaybeGetAuth(c appengine.Context, u string) *userConfig {
+	uc := &userConfig{context: c, rootUser: u}
+	tok, _ := uc.accessToken()
+	uc.context.Infof("AccessToken: %#v", tok)
+	if tok == nil {
 		return nil
 	}
-	uc.accessToken = atoken.toAccessToken()
-	uc.context.Infof("AccessToken: %#v", uc.accessToken)
 	return uc
+}
+
+func (uc *userConfig) oauthConsumer() *oauth.Consumer {
+	// Get the key and secret at http://www.flickr.com/services/apps/by/me
+	consumer := oauth.NewConsumer("--API KEY--",
+		"--SECRET--", FlickrProvider)
+	consumer.HttpClient = urlfetch.Client(uc.context)
+	return consumer
 }
 
 func AuthorizeHandler(w http.ResponseWriter, r *http.Request) {
@@ -87,10 +101,7 @@ func AuthorizeHandler(w http.ResponseWriter, r *http.Request) {
 	oauth_verifier := r.FormValue("oauth_verifier")
 	rkey := datastore.NewKey(uc.context, "oauth.RequestToken",
 		"FlickrRequestToken", 0, uc.rootUserKey())
-	// Get the key and secret at http://www.flickr.com/services/apps/by/me
-	consumer := oauth.NewConsumer("--API KEY--",
-		"--SECRET--", FlickrProvider)
-	consumer.HttpClient = urlfetch.Client(c)
+	consumer := uc.oauthConsumer()
 	switch {
 	case oauth_token == "":
 		consumer.AdditionalAuthorizationUrlParams["perms"] = flickgo.WritePerm
