@@ -9,7 +9,7 @@ import (
 	"appengine/datastore"
 	"appengine/user"
 
-        "flickr"
+	"flickr"
 	"picasa"
 )
 
@@ -91,6 +91,11 @@ func root(w http.ResponseWriter, r *http.Request) {
 	if picasa.MaybeGetAuth(c, u.String()) == nil {
 		c.Infof("Picasa is not authorized.")
 		http.Redirect(w, r, picasa.AuthPath, http.StatusFound)
+		return
+	}
+	if flickr.MaybeGetAuth(c, u.String()) == nil {
+		c.Infof("Flickr is not authorized.")
+		http.Redirect(w, r, flickr.AuthPath, http.StatusFound)
 		return
 	}
 	// Ancestor queries, as shown here, are strongly consistent with the High
