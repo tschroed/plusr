@@ -98,6 +98,7 @@ func UploadGarbage(w http.ResponseWriter, r *http.Request) {
 		uc.context.Infof("tick, err: %v, %v", tick, err)
         OUT:
                 for {
+                        uc.context.Infof("Checking on %v", tick)
                         statuses, err := fc.CheckTickets([]string{tick})
                         switch {
                         case err != nil:

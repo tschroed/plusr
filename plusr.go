@@ -57,21 +57,33 @@ func logout(w http.ResponseWriter, r *http.Request) {
 
 func photoFeedHandler(w http.ResponseWriter, r *http.Request) {
 	c := appengine.NewContext(r)
-	auth := picasa.MaybeGetAuth(c, user.Current(c).String())
-	if auth == nil {
+	pAuth := picasa.MaybeGetAuth(c, user.Current(c).String())
+	if pAuth == nil {
 		c.Errorf("Unable to get authentication blob.")
 		return
 	}
-	photos := make(chan *picasa.Photo)
-	done := make(chan bool)
-	source := picasa.NewPhotoSource(auth, photos, done)
-	go source.Start()
+	phIn := make(chan *picasa.Photo)
+	doneIn := make(chan bool)
+	source := picasa.NewPhotoSource(pAuth, phIn, doneIn)
+	fAuth := flickr.MaybeGetAuth(c, user.Current(c).String())
+	if pAuth == nil {
+		c.Errorf("Unable to get authentication blob.")
+		return
+	}
+	phOut := make(chan flickr.Photo)
+	doneOut := make(chan bool)
+	sink := flickr.NewPhotoSink(fAuth, phOut, doneOut)
+	flickr.NewPhotoSink(fAuth, phOut, doneOut)
+	go source.Loop()
+        go sink.Loop()
 	for {
 		select {
-		case p := <-photos:
+		case p := <-phIn:
 			c.Infof("Photo: %s (%s)", p.Title, p.Contents.Src)
-		case <-done:
+                        phOut <- p
+		case <-doneIn:
 			c.Infof("Those are all the photos.")
+                        doneOut <- true
 			return
 		}
 	}

@@ -15,7 +15,7 @@ func NewPhotoSource(config *userConfig, sink chan *Photo, done chan bool) *Photo
 }
 
 // Blocking
-func (p *PhotoSource) Start() {
+func (p *PhotoSource) Loop() {
 	defer func() {
 		p.done <- true
 	}()
@@ -24,12 +24,14 @@ func (p *PhotoSource) Start() {
 		p.config.context.Errorf("Error retrieving token: %s", err)
 		return
 	}
+        p.config.context.Infof("Token: %#v\n", token)
 	photos, err := findPhotos(token, urlfetch.Client(p.config.context))
 	if err != nil {
 		p.config.context.Errorf("Error finding photos: %s", err)
 		return
 	}
-	for _, photo := range photos {
-		p.sink <- &photo
+	for i, _ := range photos {
+                p.config.context.Infof("Photo: %#v", &photos[i])
+		p.sink <- &photos[i]
 	}
 }

@@ -32,12 +32,16 @@ type Photo struct {
 	token      *oauth.Token
 }
 
-func (p *Photo) Body() io.Reader {
+func (p *Photo) Body() io.ReadCloser {
 	resp, err := get(p.Contents.Src, p.token, p.httpClient)
 	if err != nil {
 		return nil
 	}
 	return resp.Body
+}
+
+func (p *Photo) Metadata() (globalUid, album, title string) {
+        return p.GlobalUid, p.Album, p.Title
 }
 
 type PhotoFeed struct {
@@ -92,7 +96,8 @@ func findPhotos(token *oauth.Token, client *http.Client) ([]Photo, error) {
 		return nil, err
 	}
 	feed := parseFeed(text)
-	for _, p := range feed.Photos {
+	for i, _ := range feed.Photos {
+                p := &feed.Photos[i]
 		p.httpClient = client
 		p.token = token
 	}
