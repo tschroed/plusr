@@ -98,7 +98,7 @@ func (uc *userConfig) oauthConsumer() *oauth.Consumer {
 	consumer := oauth.NewConsumer(APIKey, APISecret, FlickrProvider)
 	consumer.HttpClient = urlfetch.Client(uc.context)
 	consumer.Logger = uc
-	consumer.Debug(true)
+//	consumer.Debug(true)
 	return consumer
 }
 
