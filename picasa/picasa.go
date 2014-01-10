@@ -41,7 +41,7 @@ func (p *Photo) Body() io.ReadCloser {
 }
 
 func (p *Photo) Metadata() (globalUid, album, title string) {
-        return p.GlobalUid, p.Album, p.Title
+	return p.GlobalUid, p.Album, p.Title
 }
 
 type PhotoFeed struct {
@@ -97,7 +97,7 @@ func findPhotos(token *oauth.Token, client *http.Client) ([]Photo, error) {
 	}
 	feed := parseFeed(text)
 	for i, _ := range feed.Photos {
-                p := &feed.Photos[i]
+		p := &feed.Photos[i]
 		p.httpClient = client
 		p.token = token
 	}

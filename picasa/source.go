@@ -24,14 +24,14 @@ func (p *PhotoSource) Loop() {
 		p.config.context.Errorf("Error retrieving token: %s", err)
 		return
 	}
-        p.config.context.Infof("Token: %#v\n", token)
+	p.config.context.Infof("Token: %#v\n", token)
 	photos, err := findPhotos(token, urlfetch.Client(p.config.context))
 	if err != nil {
 		p.config.context.Errorf("Error finding photos: %s", err)
 		return
 	}
 	for i, _ := range photos {
-                p.config.context.Infof("Photo: %#v", &photos[i])
+		p.config.context.Infof("Photo: %#v", &photos[i])
 		p.sink <- &photos[i]
 	}
 }

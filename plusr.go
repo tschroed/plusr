@@ -75,15 +75,15 @@ func photoFeedHandler(w http.ResponseWriter, r *http.Request) {
 	sink := flickr.NewPhotoSink(fAuth, phOut, doneOut)
 	flickr.NewPhotoSink(fAuth, phOut, doneOut)
 	go source.Loop()
-        go sink.Loop()
+	go sink.Loop()
 	for {
 		select {
 		case p := <-phIn:
 			c.Infof("Photo: %s (%s)", p.Title, p.Contents.Src)
-                        phOut <- p
+			phOut <- p
 		case <-doneIn:
 			c.Infof("Those are all the photos.")
-                        doneOut <- true
+			doneOut <- true
 			return
 		}
 	}
