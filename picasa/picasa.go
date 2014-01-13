@@ -33,11 +33,11 @@ type Photo struct {
 }
 
 func (p *Photo) Body() (io.ReadCloser, error) {
-        resp, err := get(p.Contents.Src, p.token, p.httpClient)
-        if err != nil {
-                return nil, err
-        }
-        return resp.Body, nil
+	resp, err := get(p.Contents.Src, p.token, p.httpClient)
+	if err != nil {
+		return nil, err
+	}
+	return resp.Body, nil
 }
 
 func (p *Photo) Metadata() (globalUid, album, title string) {

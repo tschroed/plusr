@@ -57,10 +57,10 @@ func logout(w http.ResponseWriter, r *http.Request) {
 
 func photoFeedHandler(w http.ResponseWriter, r *http.Request) {
 	c := appengine.NewContext(r)
-        username := r.FormValue("user")
-        if username == "" {
-                username = user.Current(c).String()
-        }
+	username := r.FormValue("user")
+	if username == "" {
+		username = user.Current(c).String()
+	}
 	pAuth := picasa.MaybeGetAuth(c, username)
 	if pAuth == nil {
 		c.Errorf("Unable to get authentication blob.")

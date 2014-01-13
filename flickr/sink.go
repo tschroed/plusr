@@ -39,9 +39,9 @@ func (p *PhotoSink) Loop() {
 				tick = p.uploadPhoto(ph)
 			}
 			if tick == nil {
-                                p.config.context.Warningf("Didn't get a ticket")
-                                return
-                        }
+				p.config.context.Warningf("Didn't get a ticket")
+				return
+			}
 			p.waitTicket(ph, tick)
 		case <-p.done:
 			return
@@ -81,11 +81,11 @@ func (p *PhotoSink) uploadPhoto(photo Photo) *flickgo.TicketStatus {
 	p.config.context.Infof("==== TESTING UPLOAD USING NEW CODE ====")
 	// guid, album, title := photo.Metadata()
 	_, _, title := photo.Metadata()
-        body, err := photo.Body()
-        if err != nil {
-                p.config.context.Errorf("Error getting photo body: %#v", err)
-                return nil
-        }
+	body, err := photo.Body()
+	if err != nil {
+		p.config.context.Errorf("Error getting photo body: %#v", err)
+		return nil
+	}
 	defer body.Close()
 	img, err := ioutil.ReadAll(body)
 	if err == nil {
@@ -93,10 +93,10 @@ func (p *PhotoSink) uploadPhoto(photo Photo) *flickgo.TicketStatus {
 		tick, err := fc.Upload(title, buf.Bytes(), nil)
 		p.config.context.Infof("tick, err: %v, %v", tick, err)
 		status, err := fc.CheckTickets([]string{tick})
-                p.config.context.Infof("CheckTickets error: %v", err)
+		p.config.context.Infof("CheckTickets error: %v", err)
 		return &status[0]
 	} else {
-                p.config.context.Errorf("ReadAll: %v", err)
-        }
+		p.config.context.Errorf("ReadAll: %v", err)
+	}
 	return nil
 }

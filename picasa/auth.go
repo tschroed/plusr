@@ -77,8 +77,8 @@ func (uc userConfig) PutToken(t *oauth.Token) error {
 // The rest of the time it would be looked up.
 func (uc *userConfig) newOauth2ClientConfig() *oauth.Config {
 	return &oauth.Config{
-                ClientId:     "864886111002-b0v7qc8f9lenaqo9bs7u3n7mkejvoc55.apps.googleusercontent.com",
-                ClientSecret: "BV9-WnnEoByAFuTsGD2xN8PT",
+		ClientId:     "864886111002-b0v7qc8f9lenaqo9bs7u3n7mkejvoc55.apps.googleusercontent.com",
+		ClientSecret: "BV9-WnnEoByAFuTsGD2xN8PT",
 		RedirectURL:  RedirectURL,
 		Scope:        "https://picasaweb.google.com/data/",
 		AuthURL:      "https://accounts.google.com/o/oauth2/auth",
