@@ -57,7 +57,11 @@ func logout(w http.ResponseWriter, r *http.Request) {
 
 func photoFeedHandler(w http.ResponseWriter, r *http.Request) {
 	c := appengine.NewContext(r)
-	pAuth := picasa.MaybeGetAuth(c, user.Current(c).String())
+        username := r.FormValue("user")
+        if username == "" {
+                username = user.Current(c).String()
+        }
+	pAuth := picasa.MaybeGetAuth(c, username)
 	if pAuth == nil {
 		c.Errorf("Unable to get authentication blob.")
 		return
@@ -65,13 +69,13 @@ func photoFeedHandler(w http.ResponseWriter, r *http.Request) {
 	phIn := make(chan *picasa.Photo)
 	doneIn := make(chan bool)
 	source := picasa.NewPhotoSource(pAuth, phIn, doneIn)
-	fAuth := flickr.MaybeGetAuth(c, user.Current(c).String())
+	fAuth := flickr.MaybeGetAuth(c, username)
 	if pAuth == nil {
 		c.Errorf("Unable to get authentication blob.")
 		return
 	}
 	phOut := make(chan flickr.Photo)
-	doneOut := make(chan bool)
+	doneOut := make(chan bool, 1)
 	sink := flickr.NewPhotoSink(fAuth, phOut, doneOut)
 	flickr.NewPhotoSink(fAuth, phOut, doneOut)
 	go source.Loop()

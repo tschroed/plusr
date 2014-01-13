@@ -1,6 +1,9 @@
 package picasa
 
 import (
+        "net/http"
+        "time"
+
 	"appengine/urlfetch"
 )
 
@@ -25,7 +28,12 @@ func (p *PhotoSource) Loop() {
 		return
 	}
 	p.config.context.Infof("Token: %#v\n", token)
-	photos, err := findPhotos(token, urlfetch.Client(p.config.context))
+        transport := &urlfetch.Transport{
+                Context: p.config.context,
+                Deadline: 120 * time.Second,
+        }
+        client := &http.Client{Transport: transport}
+	photos, err := findPhotos(token, client)
 	if err != nil {
 		p.config.context.Errorf("Error finding photos: %s", err)
 		return

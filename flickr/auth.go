@@ -19,7 +19,7 @@ var (
 		AuthorizeTokenUrl: "http://www.flickr.com/services/oauth/authorize",
 		AccessTokenUrl:    "http://www.flickr.com/services/oauth/access_token",
 	}
-	RedirectURL = "http://localhost:8080" + AuthPath
+	RedirectURL = "https://plusr-sync.appspot.com" + AuthPath
 	// Get the key and secret at http://www.flickr.com/services/apps/by/me
 	APIKey    = ""
 	APISecret = ""

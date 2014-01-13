@@ -32,12 +32,12 @@ type Photo struct {
 	token      *oauth.Token
 }
 
-func (p *Photo) Body() io.ReadCloser {
-	resp, err := get(p.Contents.Src, p.token, p.httpClient)
-	if err != nil {
-		return nil
-	}
-	return resp.Body
+func (p *Photo) Body() (io.ReadCloser, error) {
+        resp, err := get(p.Contents.Src, p.token, p.httpClient)
+        if err != nil {
+                return nil, err
+        }
+        return resp.Body, nil
 }
 
 func (p *Photo) Metadata() (globalUid, album, title string) {
