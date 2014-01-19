@@ -22,7 +22,9 @@ type Greeting struct {
 func init() {
 	http.HandleFunc("/", root)
 	http.HandleFunc(picasa.AuthPath, picasa.AuthorizeHandler)
+	http.HandleFunc(picasa.ConfigPath, picasa.ConfigHandler)
 	http.HandleFunc(flickr.AuthPath, flickr.AuthorizeHandler)
+	http.HandleFunc(flickr.ConfigPath, flickr.ConfigHandler)
 	http.HandleFunc("/garbage", flickr.UploadGarbage)
 	http.HandleFunc("/logout", logout)
 	http.HandleFunc("/readfeed", photoFeedHandler)
@@ -75,7 +77,7 @@ func photoFeedHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	phOut := make(chan flickr.Photo)
-	doneOut := make(chan bool, 1)
+	doneOut := make(chan bool)
 	sink := flickr.NewPhotoSink(fAuth, phOut, doneOut)
 	flickr.NewPhotoSink(fAuth, phOut, doneOut)
 	go source.Loop()

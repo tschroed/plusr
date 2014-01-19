@@ -17,11 +17,15 @@ import (
 )
 
 var (
-	AuthPath = "/picasaauth"
-	// TODO(tschroed): This should be dynamically calculated...
-	// maybe from the referrer?
-	RedirectURL = "https://plusr-sync.appspot.com" + AuthPath
+	AuthPath   = "/picasaauth"
+	ConfigPath = "/picasaconfig"
 )
+
+type picasaConfig struct {
+	ClientId     string
+	ClientSecret string
+	RedirectURL  string
+}
 
 type userConfig struct {
 	context  appengine.Context
@@ -70,22 +74,46 @@ func (uc userConfig) PutToken(t *oauth.Token) error {
 	return nil
 }
 
-// TODO(tschroed): Ideally what we'd do here is provide a handler
-// which would allow admin users to pass new id, secret, and
-// redirect URL and then save that value in data store.
-//
-// The rest of the time it would be looked up.
 func (uc *userConfig) newOauth2ClientConfig() *oauth.Config {
 	return &oauth.Config{
-		ClientId:     "864886111002-b0v7qc8f9lenaqo9bs7u3n7mkejvoc55.apps.googleusercontent.com",
-		ClientSecret: "BV9-WnnEoByAFuTsGD2xN8PT",
-		RedirectURL:  RedirectURL,
+		ClientId:     "",
+		ClientSecret: "",
+		RedirectURL:  "",
 		Scope:        "https://picasaweb.google.com/data/",
 		AuthURL:      "https://accounts.google.com/o/oauth2/auth",
 		TokenURL:     "https://accounts.google.com/o/oauth2/token",
 		AccessType:   "offline",
 		TokenCache:   uc,
 	}
+}
+
+func (uc *userConfig) loadOauth2ClientConfig() (*oauth.Config, error) {
+	k := datastore.NewKey(uc.context, "picasaConfig",
+		"PicasaConfig", 0, nil)
+	p := &picasaConfig{}
+	if err := datastore.Get(uc.context, k, p); err != nil {
+		uc.context.Errorf("Picasa config load error: %s", err)
+		return nil, err
+	}
+	c := uc.newOauth2ClientConfig()
+	c.ClientId = p.ClientId
+	c.ClientSecret = p.ClientSecret
+	c.RedirectURL = p.RedirectURL
+	return c, nil
+}
+
+func (uc *userConfig) saveOauth2ClientConfig(c *oauth.Config) error {
+	k := datastore.NewKey(uc.context, "picasaConfig",
+		"PicasaConfig", 0, nil)
+	p := &picasaConfig{
+		ClientId:     c.ClientId,
+		ClientSecret: c.ClientSecret,
+		RedirectURL:  c.RedirectURL,
+	}
+	if _, err := datastore.Put(uc.context, k, p); err != nil {
+		return err
+	}
+	return nil
 }
 
 // Note that this may force token renewal if expired.
@@ -95,9 +123,13 @@ func MaybeGetAuth(c appengine.Context, u string) *userConfig {
 	if err != nil {
 		return nil
 	}
+	config, err := uc.loadOauth2ClientConfig()
+	if err != nil {
+		return nil
+	}
 	if token.Expired() {
 		transport := &oauth.Transport{
-			Config:    uc.newOauth2ClientConfig(),
+			Config:    config,
 			Token:     token,
 			Transport: &urlfetch.Transport{Context: c},
 		}
@@ -112,13 +144,16 @@ func MaybeGetAuth(c appengine.Context, u string) *userConfig {
 // Must execute in the context of a live user request.
 func AuthorizeHandler(w http.ResponseWriter, r *http.Request) {
 	code := r.FormValue("code")
-	err := r.FormValue("error")
+	form_err := r.FormValue("error")
 	c := appengine.NewContext(r)
 	uc := &userConfig{context: c, rootUser: user.Current(c).String()}
-	config := uc.newOauth2ClientConfig()
+	config, err := uc.loadOauth2ClientConfig()
+	if err != nil {
+		return
+	}
 	switch {
-	case err != "":
-		http.Error(w, err, http.StatusInternalServerError)
+	case form_err != "":
+		http.Error(w, form_err, http.StatusInternalServerError)
 		return
 	case code == "":
 		url := config.AuthCodeURL("")
@@ -132,5 +167,27 @@ func AuthorizeHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	if _, err := transport.Exchange(code); err != nil {
 		c.Errorf("Couldn't exchange code: %s", err)
+	}
+}
+
+func ConfigHandler(w http.ResponseWriter, r *http.Request) {
+	clientID := r.FormValue("client")
+	clientSecret := r.FormValue("secret")
+	redirectURL := r.FormValue("redirect")
+	c := appengine.NewContext(r)
+	uc := &userConfig{context: c, rootUser: user.Current(c).String()}
+	if !user.IsAdmin(c) {
+		uc.context.Errorf("Attempt by non-admin user (%s) to set config",
+			user.Current(c).String())
+		return
+	}
+	config := uc.newOauth2ClientConfig()
+	config.ClientId = clientID
+	config.ClientSecret = clientSecret
+	config.RedirectURL = redirectURL
+	uc.context.Infof("Saving Picasa config: %#v", config)
+	if err := uc.saveOauth2ClientConfig(config); err != nil {
+		uc.context.Errorf("Error saving client config", err)
+		return
 	}
 }

@@ -60,7 +60,8 @@ func readImage() ([]byte, error) {
 func UploadGarbage(w http.ResponseWriter, r *http.Request) {
 	c := appengine.NewContext(r)
 	uc := userConfig{context: c, rootUser: user.Current(c).String()}
-	fc := flickgo.New(APIKey, APISecret, &uc)
+	cfg, _ := uc.loadFlickrConfig()
+	fc := flickgo.New(cfg.APIKey, cfg.APISecret, &uc)
 	//	fc.Logger = uc.context
 	fc.DisableAuth = true
 	c.Infof("==== TESTING LOGIN USING LEGACY CODE ====")

@@ -40,7 +40,7 @@ func (p *PhotoSink) Loop() {
 			}
 			if tick == nil {
 				p.config.context.Warningf("Didn't get a ticket")
-				return
+				break
 			}
 			p.waitTicket(ph, tick)
 		case <-p.done:
@@ -51,8 +51,9 @@ func (p *PhotoSink) Loop() {
 
 func (p *PhotoSink) waitTicket(photo Photo, tick *flickgo.TicketStatus) {
 	guid, _, _ := photo.Metadata()
+	cfg, _ := p.config.loadFlickrConfig()
+	fc := flickgo.New(cfg.APIKey, cfg.APISecret, p.config)
 	for {
-		fc := flickgo.New(APIKey, APISecret, p.config)
 		statuses, err := fc.CheckTickets([]string{tick.ID})
 		if statuses != nil && len(statuses) > 0 {
 			p.config.saveTicketStatus(guid, &statuses[0])
@@ -76,7 +77,8 @@ func (p *PhotoSink) waitTicket(photo Photo, tick *flickgo.TicketStatus) {
 }
 
 func (p *PhotoSink) uploadPhoto(photo Photo) *flickgo.TicketStatus {
-	fc := flickgo.New(APIKey, APISecret, p.config)
+	cfg, _ := p.config.loadFlickrConfig()
+	fc := flickgo.New(cfg.APIKey, cfg.APISecret, p.config)
 	fc.Logger = p.config.context
 	p.config.context.Infof("==== TESTING UPLOAD USING NEW CODE ====")
 	// guid, album, title := photo.Metadata()
