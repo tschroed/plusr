@@ -30,30 +30,6 @@ type flickrConfig struct {
 	RedirectURL string
 }
 
-func (uc *userConfig) newFlickrConfig() *flickrConfig {
-	return &flickrConfig{}
-}
-
-func (uc *userConfig) loadFlickrConfig() (*flickrConfig, error) {
-	k := datastore.NewKey(uc.context, "flickrConfig",
-		"FlickrConfig", 0, nil)
-	f := &flickrConfig{}
-	if err := datastore.Get(uc.context, k, f); err != nil {
-		uc.context.Errorf("Flickr config load error: %s", err)
-		return nil, err
-	}
-	return f, nil
-}
-
-func (uc *userConfig) saveFlickrConfig(c *flickrConfig) error {
-	k := datastore.NewKey(uc.context, "flickrConfig",
-		"FlickrConfig", 0, nil)
-	if _, err := datastore.Put(uc.context, k, c); err != nil {
-		return err
-	}
-	return nil
-}
-
 type keyValue struct {
 	Key   string
 	Value string
@@ -112,6 +88,31 @@ func (uc *userConfig) Printf(format string, a ...interface{}) (n int, err error)
 	uc.context.Infof(format, a...)
 	return 0, nil
 }
+
+func (uc *userConfig) newFlickrConfig() *flickrConfig {
+	return &flickrConfig{}
+}
+
+func (uc *userConfig) loadFlickrConfig() (*flickrConfig, error) {
+	k := datastore.NewKey(uc.context, "flickrConfig",
+		"FlickrConfig", 0, nil)
+	f := &flickrConfig{}
+	if err := datastore.Get(uc.context, k, f); err != nil {
+		uc.context.Errorf("Flickr config load error: %s", err)
+		return nil, err
+	}
+	return f, nil
+}
+
+func (uc *userConfig) saveFlickrConfig(c *flickrConfig) error {
+	k := datastore.NewKey(uc.context, "flickrConfig",
+		"FlickrConfig", 0, nil)
+	if _, err := datastore.Put(uc.context, k, c); err != nil {
+		return err
+	}
+	return nil
+}
+
 
 func MaybeGetAuth(c appengine.Context, u string) *userConfig {
 	uc := &userConfig{context: c, rootUser: u}
