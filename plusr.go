@@ -1,3 +1,13 @@
+// Once deployed:
+//   / to auth as the root user (if not already done)
+//   /flickrconfig to setup a null flickr config (use cloud console
+//       datastore editor to change)
+//   /picasaconfig to setup a null picasa config (use cloud console
+//       datastore editor to change)
+//   / to rerun flickr and picasa authorization flows
+//   /readfeed to sync photos
+//
+//  Edit cron.yaml with /readfeed?user=<user> to automate.
 package plusr
 
 import (
